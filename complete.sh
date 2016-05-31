@@ -1,5 +1,23 @@
 _code-push()
 {
+  function cacheAndGetAppList() {
+    if [ ! -e ~/.code-push-cache/.applist ] || test `find ~/.code-push-cache/.applist -mmin +1` ; then
+      code-push app list --format json | grep name | sed s/\ \ \ \ \"name\"\:\ \"//g | sed s/\",//g > ~/.code-push-cache/.applist
+    fi
+
+    echo $(cat ~/.code-push-cache/.applist)
+  }
+  
+  function cacheAndGetDeploymentList() {
+    local deploymentFile
+    deploymentFile=~/.code-push-cache/$1
+    if [ ! -e $deploymentFile ] || test `find ${deploymentFile} -mmin +1` ; then
+      code-push deployment list $1 --format json | grep name | sed s/\ \ \ \ \"name\"\:\ \"//g | sed s/\",//g > $deploymentFile
+    fi
+
+    echo $(cat $deploymentFile)
+  }
+
   if [ ! -e ~/.code-push-cache ] ; then
     mkdir ~/.code-push-cache
   fi
@@ -19,6 +37,8 @@ _code-push()
       "access-key")
         if [ $COMP_CWORD -eq 2 ] ; then
           opts="add remove list"
+        elif [ $COMP_CWORD -gt 2 ] ; then
+          opts="--format"
         fi
         ;;
       "app")
@@ -43,14 +63,12 @@ _code-push()
         if [ $COMP_CWORD -eq 2 ] ; then
           opts="add clear remove rename list history"
         elif [ $COMP_CWORD -eq 3 ] ; then
-          if [ ! -e ~/.code-push-cache/applist ] || test `find ~/.code-push-cache/applist -mmin +1` ; then
-            code-push app list --format json | grep name | sed s/\ \ \ \ \"name\"\:\ \"//g | sed s/\",//g > ~/.code-push-cache/applist
-          fi
-
-          opts=$(cat ~/.code-push-cache/applist)
+          opts=$(cacheAndGetAppList)
         elif [ $COMP_CWORD -eq 4 ] ; then
           if ([ "${COMP_WORDS[2]}" = "list" ] || [ "${COMP_WORDS[2]}" = "ls" ]) && [[ $curr == "-"* ]] ; then
             opts="--displayKeys --format"
+          elif [ "${COMP_WORDS[2]}" = "history" ] || [ "${COMP_WORDS[2]}" = "h" ] || [ "${COMP_WORDS[2]}" = "rename" ] ; then 
+            opts=$(cacheAndGetDeploymentList ${COMP_WORDS[3]})
           fi
         elif [ $COMP_CWORD -gt 4 ] ; then
           if ([ "${COMP_WORDS[2]}" = "history" ] || [ "${COMP_WORDS[2]}" = "h" ]) && [[ $curr == "-"* ]] ; then
@@ -64,32 +82,70 @@ _code-push()
         fi
         ;;
       "release")
-        if [ $COMP_CWORD -gt 4 ] && [[ $curr == "-"* ]] ; then
-          opts="--deploymentName --description --disabled --mandatory --rollout"
+        if [ $COMP_CWORD -eq 2 ] ; then
+          opts=$(cacheAndGetAppList)
+        elif [ $COMP_CWORD -eq 3 ] ; then
+          opts=$(cacheAndGetDeploymentList $prev)
+        elif [ $COMP_CWORD -gt 4 ] ; then
+          if [[ $curr == "-"* ]] ; then
+            opts="--deploymentName --description --disabled --mandatory --rollout"
+          elif [ $prev == "--deploymentName" ] || [ $prev == "-d" ] ; then
+            opts=$(cacheAndGetDeploymentList ${COMP_CWORD[2]})
+          fi
         fi
         ;;
       "release-react")
-        if [ $COMP_CWORD -gt 3 ] && [[ $curr == "-"* ]] ; then
-          opts="--bundleName --deploymentName --description --development --disabled --entryFile --mandatory --sourcemapOutput --targetBinaryVersion --rollout"
+        if [ $COMP_CWORD -eq 2 ] ; then
+          opts=$(cacheAndGetAppList)
+        elif [ $COMP_CWORD -eq 3 ] ; then
+          opts="android ios"
+        elif [ $COMP_CWORD -gt 3 ] ; then
+          if [[ $curr == "-"* ]] ; then
+            opts="--bundleName --deploymentName --description --development --disabled --entryFile --mandatory --sourcemapOutput --targetBinaryVersion --rollout"
+          elif [ $prev == "--deploymentName" ] || [ $prev == "-d" ] ; then
+            opts=$(cacheAndGetDeploymentList ${COMP_CWORD[2]})
+          fi
         fi
         ;;
       "release-cordova")
-        if [ $COMP_CWORD -gt 3 ] && [[ $curr == "-"* ]] ; then
-          opts="--deploymentName --description --mandatory --targetBinaryVersion --rollout --build"
+        if [ $COMP_CWORD -eq 2 ] ; then
+          opts=$(cacheAndGetAppList)
+        elif [ $COMP_CWORD -eq 3 ] ; then
+          opts="android ios"
+        elif [ $COMP_CWORD -gt 3 ] ; then
+          if [[ $curr == "-"* ]] ; then
+            opts="--deploymentName --description --mandatory --targetBinaryVersion --rollout --build"
+          elif [ $prev == "--deploymentName" ] || [ $prev == "-d" ] ; then
+            opts=$(cacheAndGetDeploymentList ${COMP_CWORD[2]})
+          fi
         fi
         ;;
       "patch")
-        if [ $COMP_CWORD -gt 3 ] && [[ $curr == "-"* ]] ; then
-          opts="--label --mandatory --description --rollout --disabled --targetBinaryVersion"
+        if [ $COMP_CWORD -eq 2 ] ; then
+          opts=$(cacheAndGetAppList)
+        elif [ $COMP_CWORD -gt 3 ] ; then
+          if [[ $curr == "-"* ]] ; then
+            opts="--label --mandatory --description --rollout --disabled --targetBinaryVersion"
+          elif [ $prev == "--deploymentName" ] || [ $prev == "-d" ] ; then
+            opts=$(cacheAndGetDeploymentList ${COMP_CWORD[2]})
+          fi
         fi
         ;;
       "promote")
-        if [ $COMP_CWORD -gt 3 ] && [[ $curr == "-"* ]] ; then
-          opts="--description --disabled --mandatory --rollout --targetBinaryVersion"
+        if [ $COMP_CWORD -eq 2 ] ; then
+          opts=$(cacheAndGetAppList)
+        elif [ $COMP_CWORD -gt 3 ] ; then
+          if [[ $curr == "-"* ]] ; then
+            opts="--description --disabled --mandatory --rollout --targetBinaryVersion"
+          elif [ $prev == "--deploymentName" ] || [ $prev == "-d" ] ; then
+            opts=$(cacheAndGetDeploymentList ${COMP_CWORD[2]})
+          fi
         fi
         ;;
       "rollback")
-        if [ $COMP_CWORD -gt 4 ] && [[ $curr == "-"* ]] ; then
+        if [ $COMP_CWORD -eq 2 ] ; then
+          opts=$(cacheAndGetAppList)
+        elif [ $COMP_CWORD -gt 4 ] && [[ $curr == "-"* ]] ; then
           opts="--targetRelease"
         fi
         ;;
