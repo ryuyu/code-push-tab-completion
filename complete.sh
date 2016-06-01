@@ -1,7 +1,7 @@
 _code-push()
 {
   function cacheAndGetAppList() {
-    if [ ! -e ~/.code-push-cache/.applist ] || test `find ~/.code-push-cache/.applist -mmin +1` ; then
+    if [ ! -e ~/.code-push-cache/.applist ] || test `find ~/.code-push-cache/.applist -mmin +120` ; then
       code-push app list --format json | grep name | sed s/\ \ \ \ \"name\"\:\ \"//g | sed s/\",//g > ~/.code-push-cache/.applist
     fi
 
@@ -11,7 +11,7 @@ _code-push()
   function cacheAndGetDeploymentList() {
     local deploymentFile
     deploymentFile=~/.code-push-cache/$1
-    if [ ! -e $deploymentFile ] || test `find ${deploymentFile} -mmin +1` ; then
+    if [ ! -e $deploymentFile ] || test `find ${deploymentFile} -mmin +120` ; then
       code-push deployment list $1 --format json | grep name | sed s/\ \ \ \ \"name\"\:\ \"//g | sed s/\",//g > $deploymentFile
     fi
 
@@ -84,13 +84,11 @@ _code-push()
       "release")
         if [ $COMP_CWORD -eq 2 ] ; then
           opts=$(cacheAndGetAppList)
-        elif [ $COMP_CWORD -eq 3 ] ; then
-          opts=$(cacheAndGetDeploymentList $prev)
         elif [ $COMP_CWORD -gt 4 ] ; then
           if [[ $curr == "-"* ]] ; then
             opts="--deploymentName --description --disabled --mandatory --rollout"
           elif [ $prev == "--deploymentName" ] || [ $prev == "-d" ] ; then
-            opts=$(cacheAndGetDeploymentList ${COMP_CWORD[2]})
+            opts=$(cacheAndGetDeploymentList ${COMP_WORDS[2]})
           fi
         fi
         ;;
@@ -103,7 +101,7 @@ _code-push()
           if [[ $curr == "-"* ]] ; then
             opts="--bundleName --deploymentName --description --development --disabled --entryFile --mandatory --sourcemapOutput --targetBinaryVersion --rollout"
           elif [ $prev == "--deploymentName" ] || [ $prev == "-d" ] ; then
-            opts=$(cacheAndGetDeploymentList ${COMP_CWORD[2]})
+            opts=$(cacheAndGetDeploymentList ${COMP_WORDS[2]})
           fi
         fi
         ;;
@@ -116,7 +114,7 @@ _code-push()
           if [[ $curr == "-"* ]] ; then
             opts="--deploymentName --description --mandatory --targetBinaryVersion --rollout --build"
           elif [ $prev == "--deploymentName" ] || [ $prev == "-d" ] ; then
-            opts=$(cacheAndGetDeploymentList ${COMP_CWORD[2]})
+            opts=$(cacheAndGetDeploymentList ${COMP_WORDS[2]})
           fi
         fi
         ;;
@@ -127,7 +125,7 @@ _code-push()
           if [[ $curr == "-"* ]] ; then
             opts="--label --mandatory --description --rollout --disabled --targetBinaryVersion"
           elif [ $prev == "--deploymentName" ] || [ $prev == "-d" ] ; then
-            opts=$(cacheAndGetDeploymentList ${COMP_CWORD[2]})
+            opts=$(cacheAndGetDeploymentList ${COMP_WORDS[2]})
           fi
         fi
         ;;
@@ -138,7 +136,7 @@ _code-push()
           if [[ $curr == "-"* ]] ; then
             opts="--description --disabled --mandatory --rollout --targetBinaryVersion"
           elif [ $prev == "--deploymentName" ] || [ $prev == "-d" ] ; then
-            opts=$(cacheAndGetDeploymentList ${COMP_CWORD[2]})
+            opts=$(cacheAndGetDeploymentList ${COMP_WORDS[2]})
           fi
         fi
         ;;
@@ -154,7 +152,11 @@ _code-push()
     esac
   fi
 
-  COMPREPLY=($(compgen -W "$opts" -- $curr))
+  if [ ! -z "$opts" ] ; then
+    COMPREPLY=($(compgen -W "$opts" -- $curr))
+  else
+    COMPREPLY=($(compgen -f -d -- $curr))
+  fi
 
   return 0
 }
