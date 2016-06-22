@@ -31,12 +31,12 @@ _code-push()
   if [ $prev == "--format" ] ; then
     opts="json table"
   elif [ $COMP_CWORD -eq 1 ] ; then
-    opts="access-key app collaborator deployment link login logout patch promote register release release-cordova release-react rollback whoami"
+    opts="access-key app collaborator debug deployment link login logout patch promote register release release-cordova release-react rollback session whoami"
   else
     case "$base_command" in
       "access-key")
         if [ $COMP_CWORD -eq 2 ] ; then
-          opts="add remove list"
+          opts="add remove patch list"
         elif [ $COMP_CWORD -gt 2 ] ; then
           opts="--format"
         fi
@@ -57,6 +57,11 @@ _code-push()
           if ([ "${COMP_WORDS[2]}" = "list" ] || [ "${COMP_WORDS[2]}" = "ls" ]) &&  [[ $curr == "-"* ]] ; then
             opts="--format"
           fi
+        fi
+        ;;
+      "debug")
+        if [ $COMP_CWORD -eq 2 ] ; then
+          opts="ios android"
         fi
         ;;
       "deployment")
@@ -145,6 +150,15 @@ _code-push()
           opts=$(cacheAndGetAppList)
         elif [ $COMP_CWORD -gt 4 ] && [[ $curr == "-"* ]] ; then
           opts="--targetRelease"
+        fi
+        ;;
+      "session")
+        if [ $COMP_CWORD -eq 2 ] ; then
+          opts="remove list"
+        elif [ $COMP_CWORD -eq 3 ] ; then
+          if ([ "${COMP_WORDS[2]}" = "list" ] || [ "${COMP_WORDS[2]}" = "ls" ]) &&  [[ $curr == "-"* ]] ; then
+            opts="--format"
+          fi
         fi
         ;;
       *)
